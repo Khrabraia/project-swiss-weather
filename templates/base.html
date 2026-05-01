@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ page_title or "Swiss Weather" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <div>
+          <div class="title">Swiss Weather</div>
+          <div class="subtitle">
+            Source: <a href="{{ meta.doc_url }}" target="_blank" rel="noreferrer">Open‑Meteo MeteoSwiss ICON</a>
+            · Generated: {{ meta.generated_at }}
+          </div>
+        </div>
+
+        <div class="headerRight">
+          <nav class="tabs" aria-label="Pages">
+            <a class="tab {{ 'isActive' if active_page == 'dashboard' else '' }}" href="{{ url_for('dashboard', city=city.id) }}">Dashboard</a>
+            <a class="tab {{ 'isActive' if active_page == 'tables' else '' }}" href="{{ url_for('tables', city=city.id) }}">Tables</a>
+          </nav>
+
+          <div class="controls">
+            <label class="label" for="citySelect">City</label>
+            <select id="citySelect" class="select"></select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    <script id="bootstrap-data" type="application/json">
+      {{ {"city": city, "series24h": series24h}|tojson }}
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block body_extra %}{% endblock %}
+  </body>
+</html>
+
