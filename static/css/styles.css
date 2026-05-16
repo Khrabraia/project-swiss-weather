@@ -159,6 +159,10 @@ main {
   box-shadow: var(--shadow);
 }
 
+.panel {
+  margin-top: 16px;
+}
+
 .card {
   padding: 14px 14px 12px;
 }

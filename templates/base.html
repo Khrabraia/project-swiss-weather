@@ -21,7 +21,7 @@
         <div class="headerRight">
           <nav class="tabs" aria-label="Pages">
             <a class="tab {{ 'isActive' if active_page == 'dashboard' else '' }}" href="{{ url_for('dashboard', city=city.id) }}">Dashboard</a>
-            <a class="tab {{ 'isActive' if active_page == 'tables' else '' }}" href="{{ url_for('tables', city=city.id) }}">Tables</a>
+            <a class="tab {{ 'isActive' if active_page == 'tables' else '' }}" href="{{ url_for('tables', city=city.id) }}">Table</a>
           </nav>
 
           <div class="controls">
