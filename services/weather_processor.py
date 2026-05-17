@@ -213,7 +213,7 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
 
     j0 = _start_index_daily_from_today(d_time, tz)
     span_d = min(
-        5,
+        3,
         len(d_time) - j0,
         len(tmax) - j0,
         len(tmin) - j0,
