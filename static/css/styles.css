@@ -353,8 +353,8 @@ option {
   box-shadow: var(--shadow);
 }
 
-.panel {
-  margin-top: 0;
+.overview {
+  margin-top: 15px;
 }
 
 .card {
