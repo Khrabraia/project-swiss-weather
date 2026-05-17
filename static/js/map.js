@@ -1,8 +1,9 @@
 (() => {
   const STATUS_COLORS = {
-    walk: "#22c55e",
-    ok: "#3b82f6",
-    umbrella: "#f97316",
+    go_out: "#22c55e",
+    nice_walk: "#3b82f6",
+    short_walk: "#eab308",
+    take_umbrella: "#f97316",
     stay_home: "#ef4444",
   };
 
@@ -27,8 +28,6 @@
     typeof bootstrap.currentHour === "number" ? bootstrap.currentHour : new Date().getHours();
   let recDay = 0;
   let controlsBound = false;
-
-  /** One fetch per day+hour; recommendations for that day come in the same response. */
   let weatherBundle = null;
 
   function formatHour(h) {
@@ -40,17 +39,24 @@
     return Number.isFinite(n) ? String(Math.round(n)) : "—";
   }
 
+  function formatWind(w) {
+    const n = Number(w);
+    return Number.isFinite(n) ? String(Math.round(n)) : "—";
+  }
+
   function popupHtml(city, point, hour, dayLabel) {
     const time =
       hour !== undefined && hour !== null
         ? `${formatHour(hour)} · ${dayLabel || ""}`
         : "";
+    const label = point.status_label || point.status;
+    const reason = point.reason_label || point.reason || "";
     return `
       <strong>${city.name}</strong><br/>
       ${time ? `${time}<br/>` : ""}
-      Temperature: ${formatTemp(point.temp)}°C<br/>
-      Rain: ${point.rain} mm<br/>
-      Status: ${point.status} ${point.emoji}
+      ${formatTemp(point.temp)}°C · ${point.precipitation} mm · ${formatWind(point.wind)} km/h<br/>
+      ${point.emoji} <strong>${label}</strong><br/>
+      <span class="popupReason">${reason}</span>
     `;
   }
 
@@ -92,7 +98,6 @@
     return data;
   }
 
-  /** Walk picks depend on day only — reuse bundle when we already fetched that day. */
   async function fetchBundleForDay(day) {
     const hourForMap = mapHour;
     if (weatherBundle && weatherBundle.key === `${day}-${hourForMap}`) {
@@ -126,7 +131,7 @@
     }
   }
 
-  function renderRecommendations(data, day) {
+  function renderRecommendations(data) {
     const list = document.getElementById("recommendationsList");
     if (!list) return;
 
@@ -150,9 +155,10 @@
           <div class="recCard__rank">#${i + 1}</div>
           <div class="recCard__body">
             <h3>${c.name} <span class="recCard__emoji">${c.emoji}</span></h3>
-            <p class="recCard__status">${c.status} · ${formatHour(REC_HOUR)}</p>
+            <p class="recCard__status">${c.status_label || c.status} · ${formatHour(REC_HOUR)}</p>
+            <p class="recCard__reason">${c.reason_label || c.reason}</p>
             <p class="recCard__meta">
-              ${formatTemp(c.temp)}°C · rain ${c.rain} mm · wind ${c.wind} m/s · clouds ${Math.round(c.cloud)}%
+              ${formatTemp(c.temp)}°C · ${c.precipitation} mm · ${formatWind(c.wind)} km/h · ${c.precipitation_probability}% prob
             </p>
           </div>
         </article>
@@ -234,7 +240,7 @@
     list.innerHTML = `<p class="recList__loading">Loading…</p>`;
     try {
       const data = await fetchBundleForDay(day);
-      renderRecommendations(data, day);
+      renderRecommendations(data);
     } catch {
       list.innerHTML = `<p class="recList__error">Could not load recommendations.</p>`;
     }

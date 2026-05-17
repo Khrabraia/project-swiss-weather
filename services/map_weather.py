@@ -6,7 +6,12 @@ from typing import Any
 from services.cities import CITIES, City
 from services.forecast_cache import get_all_city_forecasts
 from services.forecast_days import TZ, clamp_day_offset, current_local_hour, day_label
-from services.weather_classifier import classify_weather, round_degrees, status_display
+from services.weather_classifier import (
+    classify_weather,
+    round_degrees,
+    round_wind_kmh,
+    status_display,
+)
 from services.weather_processor import find_hourly_index
 
 
@@ -32,22 +37,26 @@ def _read_hourly_values(hourly: dict[str, Any], index: int) -> tuple[float, floa
             return default
 
     temp = at("temperature_2m")
-    rain = at("precipitation")
-    wind_kmh = at("wind_speed_10m")
-    cloud = at("cloud_cover")
-    wind_ms = round(wind_kmh / 3.6, 1)
-    return temp, rain, wind_ms, cloud
+    precipitation = at("precipitation")
+    wind = at("wind_speed_10m")
+    precipitation_probability = at("precipitation_probability")
+    return temp, precipitation, wind, precipitation_probability
 
 
-def _classify_point(temp: float, rain: float, wind: float, cloud: float) -> dict[str, Any]:
-    score, label = classify_weather(temp, rain, wind, cloud)
+def _classify_point(
+    temp: float,
+    precipitation: float,
+    wind: float,
+    precipitation_probability: float,
+) -> dict[str, Any]:
+    result = classify_weather(temp, precipitation, wind, precipitation_probability)
     return {
         "temp": round_degrees(temp),
-        "rain": round(rain, 1),
-        "wind": wind,
-        "cloud": int(round(cloud, 0)),
-        "score": score,
-        **status_display(label),
+        "precipitation": round(precipitation, 1),
+        "wind": round_wind_kmh(wind),
+        "precipitation_probability": int(round(precipitation_probability, 0)),
+        **result,
+        **status_display(result["status"], result["reason"]),
     }
 
 
@@ -63,14 +72,17 @@ def point_from_forecast(
         return None
 
     hourly = forecast.get("hourly") or {}
-    temp, rain, wind, cloud = _read_hourly_values(hourly, idx)
+    temp, precipitation, wind, precipitation_probability = _read_hourly_values(hourly, idx)
     h = normalize_hour(hour) or 0
     return {
         "id": city["id"],
         "name": city["name"],
         "lat": city["lat"],
         "lon": city["lon"],
-        "current": {"hour": h, **_classify_point(temp, rain, wind, cloud)},
+        "current": {
+            "hour": h,
+            **_classify_point(temp, precipitation, wind, precipitation_probability),
+        },
     }
 
 
@@ -82,11 +94,14 @@ def _recommendation_from_point(city: City, cur: dict[str, Any]) -> dict[str, Any
         "lon": city["lon"],
         "score": cur["score"],
         "status": cur["status"],
+        "status_label": cur["status_label"],
+        "reason": cur["reason"],
+        "reason_label": cur["reason_label"],
         "emoji": cur["emoji"],
         "temp": cur["temp"],
-        "rain": cur["rain"],
+        "precipitation": cur["precipitation"],
         "wind": cur["wind"],
-        "cloud": cur["cloud"],
+        "precipitation_probability": cur["precipitation_probability"],
     }
 
 

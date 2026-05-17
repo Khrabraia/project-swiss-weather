@@ -252,17 +252,31 @@ option {
   display: inline-block;
 }
 
-.dot--walk {
+.dot--go_out {
   background: #22c55e;
 }
-.dot--ok {
+.dot--nice_walk {
   background: #3b82f6;
 }
-.dot--umbrella {
+.dot--short_walk {
+  background: #eab308;
+}
+.dot--take_umbrella {
   background: #f97316;
 }
-.dot--stay {
+.dot--stay_home {
   background: #ef4444;
+}
+
+.popupReason {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.recCard__reason {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .recList {

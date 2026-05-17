@@ -1,53 +1,44 @@
 from __future__ import annotations
 
-WALK_LABELS = ("walk", "ok", "umbrella", "stay_home")
+from typing import Any
+
+STATUSES = ("go_out", "nice_walk", "short_walk", "take_umbrella", "stay_home")
 
 STATUS_EMOJI: dict[str, str] = {
-    "walk": "🚶",
-    "ok": "🙂",
-    "umbrella": "☂️",
+    "go_out": "🌞",
+    "nice_walk": "🚶",
+    "short_walk": "🙂",
+    "take_umbrella": "☂️",
     "stay_home": "🏠",
 }
 
 STATUS_COLORS: dict[str, str] = {
-    "walk": "#22c55e",
-    "ok": "#3b82f6",
-    "umbrella": "#f97316",
+    "go_out": "#22c55e",
+    "nice_walk": "#3b82f6",
+    "short_walk": "#eab308",
+    "take_umbrella": "#f97316",
     "stay_home": "#ef4444",
 }
 
+STATUS_LABELS: dict[str, str] = {
+    "go_out": "Go out",
+    "nice_walk": "Nice walk",
+    "short_walk": "Short walk",
+    "take_umbrella": "Take umbrella",
+    "stay_home": "Stay home",
+}
 
-def classify_weather(temp: float, rain: float, wind: float, cloud: float) -> tuple[int, str]:
-    """
-    Score weather for walking.
-
-    wind: m/s
-    rain: mm
-    cloud: %
-    """
-    score = 0
-
-    if 18 <= temp <= 25:
-        score += 2
-    if temp < 5 or temp > 30:
-        score -= 2
-    if rain > 1:
-        score -= 3
-    if wind > 8:
-        score -= 1
-    if cloud > 70:
-        score -= 1
-
-    if score >= 2:
-        label = "walk"
-    elif score >= 0:
-        label = "ok"
-    elif score >= -2:
-        label = "umbrella"
-    else:
-        label = "stay_home"
-
-    return score, label
+REASON_LABELS: dict[str, str] = {
+    "perfect_weather": "Perfect weather",
+    "rain": "Rain expected",
+    "heavy_rain": "Heavy rain",
+    "wind": "Strong wind",
+    "cold": "Cold weather",
+    "hot": "Hot weather",
+    "cloudy": "High rain chance",
+    "storm": "Storm",
+    "snow": "Snow"
+}
 
 
 def round_degrees(value: float | int | None) -> int:
@@ -56,9 +47,87 @@ def round_degrees(value: float | int | None) -> int:
     return int(round(float(value), 0))
 
 
-def status_display(label: str) -> dict[str, str]:
+def round_wind_kmh(value: float | int | None) -> int:
+    if value is None:
+        return 0
+    return int(round(float(value), 0))
+
+
+def classify_weather(
+    temp: float,
+    precipitation: float,
+    wind: float,
+    precipitation_probability: float,
+) -> dict[str, Any]:
+    """
+    Score walking conditions.
+
+    temp: °C
+    precipitation: mm
+    wind: km/h
+    precipitation_probability: %
+    """
+    score = 0
+    reason = "perfect_weather"
+
+    if precipitation > 5:
+        if wind > 10:
+            return {"score": -10, "status": "stay_home", "reason": "storm"}
+        return {"score": -10, "status": "stay_home", "reason": "heavy_rain"}
+
+    if temp < 0:
+        reason = "cold"
+    elif temp > 30:
+        reason = "hot"
+    elif 18 <= temp <= 25:
+        score += 3
+    elif 10 <= temp < 18 or 25 < temp <= 30:
+        score += 2
+    
+
+    if precipitation > 1:
+        score -= 3
+        if reason == "cold":
+            reason = "snow"
+        else:
+            reason = "rain"
+
+    if wind > 10:
+        score = 0
+        if reason == "perfect_weather":
+            reason = "wind"
+
+    if precipitation_probability > 70 and reason == "perfect_weather":
+        score -= 1
+        reason = "cloudy"
+
+    if 1 < precipitation <= 5 and score >= -2:
+        return {"score": score, "status": "take_umbrella", "reason": "rain"}
+
+    if score >= 3:
+        status = "go_out"
+        if reason == "perfect_weather" or (18 <= temp <= 25 and precipitation == 0 and  precipitation_probability <= 70):
+            reason = "perfect_weather"
+    elif score >= 2:
+        status = "nice_walk"
+    elif score >= 0:
+        status = "short_walk"
+    elif score >= -2:
+        status = "take_umbrella"
+        if reason == "perfect_weather":
+            reason = "rain"
+    else:
+        status = "stay_home"
+
+    return {"score": score, "status": status, "reason": reason}
+
+
+def status_display(status: str, reason: str) -> dict[str, str]:
     return {
-        "status": label,
-        "emoji": STATUS_EMOJI.get(label, ""),
-        "color": STATUS_COLORS.get(label, "#64748b"),
+        "status": status,
+        "status_label": STATUS_LABELS.get(status, status.replace("_", " ").title()),
+        "reason": reason,
+        "reason_label": REASON_LABELS.get(reason, reason.replace("_", " ").title()),
+        "emoji": STATUS_EMOJI.get(status, ""),
+        "color": STATUS_COLORS.get(status, "#64748b"),
     }

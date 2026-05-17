@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from services.weather_classifier import round_degrees
+from services.weather_classifier import round_degrees, round_wind_kmh
 
 
 WEATHER_CODE_LABELS: dict[int, str] = {
@@ -191,7 +191,7 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
         "temperature": [round_degrees(t) for t in temps[i0:i1]],
         "precipitation": prec[i0:i1],
         "precipitation_probability": pop[i0:i1],
-        "wind_speed": wind[i0:i1],
+        "wind_speed": [round_wind_kmh(w) for w in wind[i0:i1]],
         "units": {
             "temperature": hourly_units.get("temperature_2m", "°C"),
             "precipitation": hourly_units.get("precipitation", "mm"),
