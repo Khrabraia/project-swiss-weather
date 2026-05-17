@@ -6,11 +6,11 @@ In addition to raw weather data and charts, the backend computes a walking suita
 
 The possible statuses are:
 
-go_out – ideal conditions for a walk
-nice_walk – generally good weather
-short_walk – acceptable, but not perfect
-take_umbrella – rain likely, be prepared
-stay_home – poor conditions, better to stay indoors
+- **go_out** – ideal conditions for a walk  
+- **nice_walk** – generally good weather  
+- **short_walk** – acceptable, but not perfect  
+- **take_umbrella** – rain likely  
+- **stay_home** – better to stay indoors  
 
 Data source docs: https://open-meteo.com/en/docs/meteoswiss-api
 
