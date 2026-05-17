@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set page_title = "Swiss Weather" %}
+
+{% block head_extra %}
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+{% endblock %}
+
+{% block content %}
+  <section class="cityBar panel">
+    <label class="label" for="citySelect">City</label>
+    <select id="citySelect" class="select select--wide"></select>
+    <p class="cityBar__hint">Dashboard and table use the selected city. Map and walk picks show all cities.</p>
+  </section>
+
+  <nav class="viewTabs" aria-label="Views">
+    <button type="button" class="viewTab isActive" data-view="dashboard">Dashboard</button>
+    <button type="button" class="viewTab" data-view="table">Table</button>
+    <button type="button" class="viewTab" data-view="map">Map</button>
+    <button type="button" class="viewTab" data-view="recommendations">Walk picks</button>
+  </nav>
+
+  <div id="view-dashboard" class="viewPanel isActive">
+    {% include "partials/dashboard_content.html" %}
+  </div>
+
+  <div id="view-table" class="viewPanel">
+    {% include "partials/table_content.html" %}
+  </div>
+
+  <div id="view-map" class="viewPanel">
+    <section class="panel">
+      <div class="panel__title">Swiss cities · walking weather</div>
+      <nav id="mapDayBar" class="dayBar" aria-label="Forecast day">
+        {% include "partials/day_buttons.html" %}
+      </nav>
+      <div class="mapControls">
+        <label class="label" for="hourSlider">Hour</label>
+        <input id="hourSlider" type="range" min="0" max="24" value="{{ current_hour }}" step="1" />
+        <span id="hourLabel" class="hourLabel">{{ '%02d'|format(current_hour) }}:00</span>
+      </div>
+      <div id="weatherMap" class="map"></div>
+      <div class="legend">
+        <span class="legend__item"><i class="dot dot--walk"></i> walk</span>
+        <span class="legend__item"><i class="dot dot--ok"></i> ok</span>
+        <span class="legend__item"><i class="dot dot--umbrella"></i> umbrella</span>
+        <span class="legend__item"><i class="dot dot--stay"></i> stay home</span>
+      </div>
+    </section>
+  </div>
+
+  <div id="view-recommendations" class="viewPanel">
+    <section class="panel">
+      <div class="panel__title">Best cities to walk (top 3)</div>
+      <nav id="recDayBar" class="dayBar dayBar--rec" aria-label="Recommendation day">
+        {% include "partials/day_buttons.html" %}
+      </nav>
+      <div id="recommendationsList" class="recList"></div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block before_app_js %}
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}

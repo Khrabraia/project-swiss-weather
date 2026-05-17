@@ -5,8 +5,16 @@ import os
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from services.cities import DEFAULT_CITY_ID, get_city, list_cities
-from services.weather_api import fetch_meteoswiss_forecast
+from services.forecast_days import clamp_day_offset, current_local_hour, day_label, forecast_day_options
+from services.forecast_cache import get_city_forecast
+from services.map_weather import build_weather_bundle
 from services.weather_processor import build_dashboard_view_model
+
+
+def _city_view(city_id: str):
+    city = get_city(city_id)
+    forecast = get_city_forecast(city)
+    return build_dashboard_view_model(city=city, forecast=forecast)
 
 
 def create_app() -> Flask:
@@ -14,52 +22,51 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
-        return redirect(url_for("dashboard"))
+        city_id = request.args.get("city", DEFAULT_CITY_ID)
+        view = request.args.get("view", "dashboard")
+        vm = _city_view(city_id)
+        vm["active_view"] = view
+        vm["forecast_days"] = forecast_day_options()
+        vm["current_hour"] = current_local_hour()
+        return render_template("weather.html", active_page="weather", **vm)
 
     @app.get("/dashboard")
     def dashboard():
-        city_id = request.args.get("city", DEFAULT_CITY_ID)
-        city = get_city(city_id)
-
-        forecast = fetch_meteoswiss_forecast(
-            latitude=city["lat"],
-            longitude=city["lon"],
-            timezone="Europe/Zurich",
-            forecast_days=5,
-        )
-        vm = build_dashboard_view_model(city=city, forecast=forecast)
-        return render_template("dashboard.html", active_page="dashboard", **vm)
+        city = request.args.get("city", DEFAULT_CITY_ID)
+        view = request.args.get("view", "dashboard")
+        return redirect(url_for("index", city=city, view=view))
 
     @app.get("/tables")
     def tables():
-        city_id = request.args.get("city", DEFAULT_CITY_ID)
-        city = get_city(city_id)
-
-        forecast = fetch_meteoswiss_forecast(
-            latitude=city["lat"],
-            longitude=city["lon"],
-            timezone="Europe/Zurich",
-            forecast_days=5,
-        )
-        vm = build_dashboard_view_model(city=city, forecast=forecast)
-        return render_template("tables.html", active_page="tables", **vm)
+        city = request.args.get("city", DEFAULT_CITY_ID)
+        return redirect(url_for("index", city=city, view="table"))
 
     @app.get("/api/cities")
     def api_cities():
         return jsonify(list_cities())
 
     @app.get("/api/weather")
-    def api_weather():
+    def api_weather_city():
         city_id = request.args.get("city", DEFAULT_CITY_ID)
-        city = get_city(city_id)
-        forecast = fetch_meteoswiss_forecast(
-            latitude=city["lat"],
-            longitude=city["lon"],
-            timezone="Europe/Zurich",
-            forecast_days=5,
+        return jsonify(_city_view(city_id))
+
+    @app.get("/weather")
+    def weather_all():
+        day_offset = clamp_day_offset(request.args.get("day", 0, type=int))
+        hour = request.args.get("hour", type=int)
+        return jsonify(build_weather_bundle(day_offset=day_offset, hour=hour))
+
+    @app.get("/api/recommendations")
+    def api_recommendations():
+        day_offset = clamp_day_offset(request.args.get("day", 0, type=int))
+        bundle = build_weather_bundle(day_offset=day_offset, hour=12)
+        return jsonify(
+            {
+                "day_offset": bundle["day_offset"],
+                "day_label": bundle["day_label"],
+                "recommendations": bundle["recommendations"],
+            }
         )
-        vm = build_dashboard_view_model(city=city, forecast=forecast)
-        return jsonify(vm)
 
     return app
 

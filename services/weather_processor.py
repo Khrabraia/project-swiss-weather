@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
+
+from services.weather_classifier import round_degrees
 
 
 WEATHER_CODE_LABELS: dict[int, str] = {
@@ -56,11 +58,25 @@ def _fmt_time_iso8601(s: str) -> str:
         return s
 
 
+def parse_hourly_time(s: Any, tz: ZoneInfo) -> datetime | None:
+    """Open-Meteo returns naive ISO strings in the requested timezone."""
+    if not isinstance(s, str):
+        return None
+    try:
+        raw = s.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(raw)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=tz)
+        return dt.astimezone(tz)
+    except Exception:
+        return None
+
+
 def _fmt_hourly_label_local(s: Any, tz: ZoneInfo) -> str:
-    instant = _hourly_instant_utc(s)
+    instant = parse_hourly_time(s, tz)
     if instant is None:
         return _fmt_time_iso8601(str(s)) if isinstance(s, str) else str(s)
-    return instant.astimezone(tz).strftime("%a %H:%M")
+    return instant.strftime("%a %H:%M")
 
 
 def _fmt_daily_date_dmy(s: Any) -> str:
@@ -74,10 +90,10 @@ def _fmt_daily_date_dmy(s: Any) -> str:
 
 
 def _fmt_daily_date_dmy_local(s: Any, tz: ZoneInfo) -> str:
-    instant = _hourly_instant_utc(s)
+    instant = parse_hourly_time(s, tz)
     if instant is None:
         return _fmt_daily_date_dmy(s)
-    return instant.astimezone(tz).strftime("%d-%m-%Y")
+    return instant.strftime("%d-%m-%Y")
 
 
 def _forecast_tz(forecast: dict[str, Any]) -> ZoneInfo:
@@ -90,18 +106,31 @@ def _forecast_tz(forecast: dict[str, Any]) -> ZoneInfo:
     return ZoneInfo("Europe/Zurich")
 
 
-def _hourly_instant_utc(s: Any) -> datetime | None:
-    """Parse hourly timestamp from API; naive ISO is treated as UTC (openmeteo unix → ISO)."""
-    if not isinstance(s, str):
-        return None
-    try:
-        raw = s.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(raw)
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
-    except Exception:
-        return None
+def find_hourly_index(
+    forecast: dict[str, Any],
+    target_date: date,
+    target_hour: int,
+) -> int | None:
+    hourly = forecast.get("hourly") or {}
+    times: list[Any] = hourly.get("time") or []
+    tz = _forecast_tz(forecast)
+    hour = max(0, min(23, int(target_hour)))
+
+    for i, t in enumerate(times):
+        dt = parse_hourly_time(t, tz)
+        if dt and dt.date() == target_date and dt.hour == hour:
+            return i
+
+    best_i: int | None = None
+    best_dist = 999
+    for i, t in enumerate(times):
+        dt = parse_hourly_time(t, tz)
+        if dt and dt.date() == target_date:
+            dist = abs(dt.hour - hour)
+            if dist < best_dist:
+                best_dist = dist
+                best_i = i
+    return best_i
 
 
 def _start_index_next_24h(times: list[Any], tz: ZoneInfo) -> int:
@@ -109,7 +138,7 @@ def _start_index_next_24h(times: list[Any], tz: ZoneInfo) -> int:
     now = datetime.now(tz)
     hour_start = now.replace(minute=0, second=0, microsecond=0)
     for i, t in enumerate(times):
-        instant = _hourly_instant_utc(t)
+        instant = parse_hourly_time(t, tz)
         if instant is None:
             continue
         if instant >= hour_start:
@@ -121,10 +150,10 @@ def _start_index_daily_from_today(d_times: list[Any], tz: ZoneInfo) -> int:
     """First daily row whose local calendar day (in `tz`) is today or later."""
     today = datetime.now(tz).date()
     for i, t in enumerate(d_times):
-        instant = _hourly_instant_utc(t)
+        instant = parse_hourly_time(t, tz)
         if instant is None:
             continue
-        if instant.astimezone(tz).date() >= today:
+        if instant.date() >= today:
             return i
     return 0
 
@@ -159,7 +188,7 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
     i1 = i0 + span
     series = {
         "labels": [_fmt_hourly_label_local(t, tz) for t in times[i0:i1]],
-        "temperature": temps[i0:i1],
+        "temperature": [round_degrees(t) for t in temps[i0:i1]],
         "precipitation": prec[i0:i1],
         "precipitation_probability": pop[i0:i1],
         "wind_speed": wind[i0:i1],
@@ -201,8 +230,8 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
             {
                 "date": _fmt_daily_date_dmy_local(d_time[i], tz),
                 "weather": weather_label(d_code[i] if i < len(d_code) else None),
-                "tmax": tmax[i],
-                "tmin": tmin[i],
+                "tmax": round_degrees(tmax[i]),
+                "tmin": round_degrees(tmin[i]),
                 "precip_sum": psum[i],
                 "precip_prob_max": pmax[i],
                 "wind_max": wmax[i],
@@ -237,8 +266,8 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
         "current": {
             "time": current_time,
             "weather": weather_label(current_code),
-            "temperature": current.get("temperature_2m"),
-            "apparent_temperature": current.get("apparent_temperature"),
+            "temperature": round_degrees(current.get("temperature_2m")),
+            "apparent_temperature": round_degrees(current.get("apparent_temperature")),
             "humidity": current.get("relative_humidity_2m"),
             "precipitation": current.get("precipitation"),
             "wind_speed": current.get("wind_speed_10m"),

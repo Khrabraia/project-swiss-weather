@@ -17,18 +17,6 @@
             · Generated: {{ meta.generated_at }}
           </div>
         </div>
-
-        <div class="headerRight">
-          <nav class="tabs" aria-label="Pages">
-            <a class="tab {{ 'isActive' if active_page == 'dashboard' else '' }}" href="{{ url_for('dashboard', city=city.id) }}">Dashboard</a>
-            <a class="tab {{ 'isActive' if active_page == 'tables' else '' }}" href="{{ url_for('tables', city=city.id) }}">Table</a>
-          </nav>
-
-          <div class="controls">
-            <label class="label" for="citySelect">City</label>
-            <select id="citySelect" class="select"></select>
-          </div>
-        </div>
       </div>
     </header>
 
@@ -37,10 +25,10 @@
     </main>
 
     <script id="bootstrap-data" type="application/json">
-      {{ {"city": city, "series24h": series24h}|tojson }}
+      {{ {"city": city, "series24h": series24h, "activeView": active_view|default("dashboard"), "currentHour": current_hour|default(12)}|tojson }}
     </script>
+    {% block before_app_js %}{% endblock %}
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block body_extra %}{% endblock %}
   </body>
 </html>
-

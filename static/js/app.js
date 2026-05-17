@@ -13,20 +13,58 @@
 
   const bootstrap = getBootstrap();
 
+  const chartColors = {
+    text: "rgba(15, 23, 42, 0.65)",
+    grid: "rgba(15, 23, 42, 0.08)",
+    legend: "rgba(15, 23, 42, 0.8)",
+    tempLine: "rgba(37, 99, 235, 0.95)",
+    tempFill: "rgba(37, 99, 235, 0.12)",
+    precipBar: "rgba(34, 197, 94, 0.35)",
+    precipBorder: "rgba(34, 197, 94, 0.7)",
+    probLine: "rgba(234, 179, 8, 0.9)",
+    probFill: "rgba(234, 179, 8, 0.1)",
+  };
+
   async function fetchCities() {
     const res = await fetch("/api/cities");
     if (!res.ok) throw new Error("Failed to load cities");
     return await res.json();
   }
 
-  function setQueryParam(key, value) {
+  function getViewFromUrl() {
     const url = new URL(window.location.href);
-    url.searchParams.set(key, value);
+    return url.searchParams.get("view") || bootstrap.activeView || "dashboard";
+  }
+
+  function setView(view, { pushState = true } = {}) {
+    document.querySelectorAll(".viewTab").forEach((tab) => {
+      tab.classList.toggle("isActive", tab.dataset.view === view);
+    });
+    document.querySelectorAll(".viewPanel").forEach((panel) => {
+      const id = panel.id.replace("view-", "");
+      panel.classList.toggle("isActive", id === view);
+    });
+
+    if (pushState) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", view);
+      window.history.replaceState({}, "", url);
+    }
+
+    if (window.WeatherMap?.onViewShown) {
+      window.WeatherMap.onViewShown(view);
+    }
+  }
+
+  function navigateCity(cityId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("city", cityId);
     window.location.assign(url.toString());
   }
 
   function createTempChart(series) {
     const ctx = document.getElementById("tempChart");
+    if (!ctx) return null;
     return new Chart(ctx, {
       type: "line",
       data: {
@@ -35,8 +73,8 @@
           {
             label: `Temp (${series.units.temperature})`,
             data: series.temperature,
-            borderColor: "rgba(104, 194, 255, 0.95)",
-            backgroundColor: "rgba(104, 194, 255, 0.12)",
+            borderColor: chartColors.tempLine,
+            backgroundColor: chartColors.tempFill,
             fill: true,
             tension: 0.3,
             pointRadius: 0,
@@ -46,11 +84,11 @@
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true, labels: { color: "rgba(255,255,255,0.8)" } },
+          legend: { display: true, labels: { color: chartColors.legend } },
         },
         scales: {
-          x: { ticks: { color: "rgba(255,255,255,0.6)", maxTicksLimit: 8 } },
-          y: { ticks: { color: "rgba(255,255,255,0.6)" }, grid: { color: "rgba(255,255,255,0.08)" } },
+          x: { ticks: { color: chartColors.text, maxTicksLimit: 8 } },
+          y: { ticks: { color: chartColors.text }, grid: { color: chartColors.grid } },
         },
       },
     });
@@ -58,6 +96,7 @@
 
   function createPrecipChart(series) {
     const ctx = document.getElementById("precipChart");
+    if (!ctx) return null;
     return new Chart(ctx, {
       type: "bar",
       data: {
@@ -66,8 +105,8 @@
           {
             label: `Precip (${series.units.precipitation})`,
             data: series.precipitation,
-            backgroundColor: "rgba(156, 255, 150, 0.24)",
-            borderColor: "rgba(156, 255, 150, 0.55)",
+            backgroundColor: chartColors.precipBar,
+            borderColor: chartColors.precipBorder,
             borderWidth: 1,
           },
           {
@@ -75,8 +114,8 @@
             data: series.precipitation_probability,
             type: "line",
             yAxisID: "y2",
-            borderColor: "rgba(255, 214, 102, 0.9)",
-            backgroundColor: "rgba(255, 214, 102, 0.08)",
+            borderColor: chartColors.probLine,
+            backgroundColor: chartColors.probFill,
             tension: 0.3,
             pointRadius: 0,
           },
@@ -85,29 +124,47 @@
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true, labels: { color: "rgba(255,255,255,0.8)" } },
+          legend: { display: true, labels: { color: chartColors.legend } },
         },
         scales: {
-          x: { ticks: { color: "rgba(255,255,255,0.6)", maxTicksLimit: 8 } },
+          x: { ticks: { color: chartColors.text, maxTicksLimit: 8 } },
           y: {
-            ticks: { color: "rgba(255,255,255,0.6)" },
-            grid: { color: "rgba(255,255,255,0.08)" },
-            title: { display: true, text: series.units.precipitation, color: "rgba(255,255,255,0.6)" },
+            ticks: { color: chartColors.text },
+            grid: { color: chartColors.grid },
+            title: { display: true, text: series.units.precipitation, color: chartColors.text },
           },
           y2: {
             position: "right",
             min: 0,
             max: 100,
             grid: { drawOnChartArea: false },
-            ticks: { color: "rgba(255,255,255,0.6)" },
-            title: { display: true, text: series.units.precipitation_probability, color: "rgba(255,255,255,0.6)" },
+            ticks: { color: chartColors.text },
+            title: {
+              display: true,
+              text: series.units.precipitation_probability,
+              color: chartColors.text,
+            },
           },
         },
       },
     });
   }
 
+  function bindViewTabs() {
+    document.querySelectorAll(".viewTab").forEach((tab) => {
+      tab.addEventListener("click", () => setView(tab.dataset.view));
+    });
+  }
+
   async function init() {
+    bindViewTabs();
+    setView(getViewFromUrl(), { pushState: false });
+
+    window.WeatherMap?.init?.();
+    window.WeatherMap?.onViewShown?.(getViewFromUrl());
+
+    if (!citySelect) return;
+
     const cities = await fetchCities();
     const currentCityId = (bootstrap.city && bootstrap.city.id) || "zurich";
 
@@ -119,7 +176,7 @@
       citySelect.appendChild(opt);
     }
 
-    citySelect.addEventListener("change", (e) => setQueryParam("city", e.target.value));
+    citySelect.addEventListener("change", (e) => navigateCity(e.target.value));
 
     if (bootstrap.series24h) {
       createTempChart(bootstrap.series24h);
@@ -128,8 +185,6 @@
   }
 
   init().catch((err) => {
-    // Avoid breaking the whole page; show minimal signal.
     console.error(err);
   });
 })();
-

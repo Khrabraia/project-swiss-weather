@@ -1,0 +1,3 @@
+{% for d in forecast_days %}
+<button type="button" class="dayBtn{% if d.offset == 0 %} isActive{% endif %}" data-day="{{ d.offset }}">{{ d.label }}</button>
+{% endfor %}

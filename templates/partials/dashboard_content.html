@@ -1,0 +1,57 @@
+<section class="grid grid--cards">
+  <div class="card">
+    <div class="card__label">Now</div>
+    <div class="card__value">{{ current.temperature }}{{ current.units.temperature }}</div>
+    <div class="card__meta">{{ current.weather }}</div>
+  </div>
+
+  <div class="card">
+    <div class="card__label">Feels like</div>
+    <div class="card__value">{{ current.apparent_temperature }}{{ current.units.temperature }}</div>
+    <div class="card__meta">Humidity {{ (current.humidity or 0)|float|round(2) }}{{ current.units.humidity }}</div>
+  </div>
+
+  <div class="card">
+    <div class="card__label">Precipitation</div>
+    <div class="card__value">{{ (current.precipitation or 0)|float|round(2) }}{{ current.units.precipitation }}</div>
+    <div class="card__meta">Next 24h: {{ insights.wetness_24h }} · Trend: {{ insights.trend_8h }}</div>
+  </div>
+
+  <div class="card">
+    <div class="card__label">Wind</div>
+    <div class="card__value">{{ (current.wind_speed or 0)|float|round(2) }}{{ current.units.wind_speed }}</div>
+    <div class="card__meta">Gusts {{ (current.wind_gusts or 0)|float|round(2) }}{{ current.units.wind_gusts }}</div>
+  </div>
+</section>
+
+<section class="grid grid--charts">
+  <div class="panel">
+    <div class="panel__title">24 hours · Temperature</div>
+    <canvas id="tempChart" height="110"></canvas>
+  </div>
+  <div class="panel">
+    <div class="panel__title">24 hours · Precipitation</div>
+    <canvas id="precipChart" height="110"></canvas>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__title">5-day overview</div>
+  <div class="days">
+    {% for d in days %}
+    <div class="day">
+      <div class="day__date">{{ d.date }}</div>
+      <div class="day__weather">{{ d.weather }}</div>
+      <div class="day__temps">
+        <span class="pill pill--warm">{{ d.tmax }}{{ daily_units.tmax }}</span>
+        <span class="pill pill--cool">{{ d.tmin }}{{ daily_units.tmin }}</span>
+      </div>
+      <div class="day__meta">
+        <div>Precip {{ (d.precip_sum or 0)|float|round(2) }}{{ daily_units.precip_sum }}</div>
+        <div>Prob {{ (d.precip_prob_max or 0)|float|round(2) }}{{ daily_units.precip_prob_max }}</div>
+        <div>Wind {{ (d.wind_max or 0)|float|round(2) }}{{ daily_units.wind_max }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>

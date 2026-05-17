@@ -1,0 +1,27 @@
+<section class="panel">
+  <div class="panel__title">Hourly data table · next 24 hours</div>
+  <div class="tableWrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Temperature ({{ series24h.units.temperature }})</th>
+          <th>Precipitation ({{ series24h.units.precipitation }})</th>
+          <th>Precipitation probability ({{ series24h.units.precipitation_probability }})</th>
+          <th>Wind speed ({{ series24h.units.wind_speed }})</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(series24h.labels|length) %}
+        <tr>
+          <td class="mono">{{ series24h.labels[i] }}</td>
+          <td>{{ series24h.temperature[i] }}</td>
+          <td>{{ (series24h.precipitation[i] or 0)|float|round(2) }}</td>
+          <td>{{ (series24h.precipitation_probability[i] or 0)|float|round(2) }}</td>
+          <td>{{ (series24h.wind_speed[i] or 0)|float|round(2) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
