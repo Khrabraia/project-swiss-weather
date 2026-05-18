@@ -35,6 +35,8 @@ REASON_LABELS: dict[str, str] = {
     "wind": "Strong wind",
     "cold": "Cold weather",
     "hot": "Hot weather",
+    "warm": "Warm",
+    "chilly": "Chilly",
     "cloudy": "High rain chance",
     "storm": "Storm",
     "snow": "Snow"
@@ -83,6 +85,10 @@ def classify_weather(
         score += 3
     elif 10 <= temp < 18 or 25 < temp <= 30:
         score += 2
+        reason = "warm"
+    else:
+        score += 1
+        reason = "chilly"
     
 
     if precipitation > 1:
@@ -93,11 +99,14 @@ def classify_weather(
             reason = "rain"
 
     if wind > 10:
-        score = 0
-        if reason == "perfect_weather":
+        if reason in ["perfect_weather", "warm", "chilly"]:
             reason = "wind"
+            score = 0
+        elif reason in ["cold", "hot"]:
+            reason = "wind"
+            score -= 3
 
-    if precipitation_probability > 70 and reason == "perfect_weather":
+    if precipitation_probability > 70 and reason in ["perfect_weather", "warm", "chilly"]:
         score -= 1
         reason = "cloudy"
 
