@@ -57,7 +57,7 @@ def _iso_times_from_unix(start_s: int, end_s: int, interval_s: int) -> list[str]
         freq=pd.Timedelta(seconds=interval_s),
         inclusive="left",
     )
-    return [t.to_pydatetime().replace(tzinfo=None).isoformat(timespec="minutes") for t in idx]
+    return [t.isoformat(timespec="minutes") for t in idx]
 
 
 def _as_list(x) -> list:
@@ -172,26 +172,6 @@ def _response_to_forecast(response: Any, *, timezone: str) -> dict[str, Any]:
         "daily": daily_data,
         "daily_units": daily_units,
     }
-
-
-def fetch_meteoswiss_forecast(
-    *,
-    latitude: float,
-    longitude: float,
-    timezone: str,
-    forecast_days: int = 5,
-    model: str = "meteoswiss_icon_ch2",
-) -> dict[str, Any]:
-    params = _forecast_params(
-        latitude=latitude,
-        longitude=longitude,
-        timezone=timezone,
-        forecast_days=forecast_days,
-        model=model,
-    )
-    responses = _openmeteo.weather_api(OPEN_METEO_URL, params=params)
-    return _response_to_forecast(responses[0], timezone=timezone)
-
 
 def fetch_all_cities_forecast(
     *,

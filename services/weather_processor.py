@@ -63,14 +63,15 @@ def parse_hourly_time(s: Any, tz: ZoneInfo) -> datetime | None:
     if not isinstance(s, str):
         return None
     try:
-        raw = s.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(raw)
+    
+        dt = datetime.fromisoformat(s)
+
         if dt.tzinfo is None:
-            return dt.replace(tzinfo=tz)
-        return dt.astimezone(tz)
+            dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+        return dt.astimezone(tz) 
     except Exception:
         return None
-
 
 def _fmt_hourly_label_local(s: Any, tz: ZoneInfo) -> str:
     instant = parse_hourly_time(s, tz)
@@ -212,31 +213,24 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
     d_code = daily.get("weather_code", []) or []
 
     j0 = _start_index_daily_from_today(d_time, tz)
-    span_d = min(
-        3,
-        len(d_time) - j0,
-        len(tmax) - j0,
-        len(tmin) - j0,
-        len(psum) - j0,
-        len(pmax) - j0,
-        len(wmax) - j0,
-        len(d_code) - j0,
-    )
-    span_d = max(0, span_d)
+    span_d = min(5, len(d_time) - j0)
     j1 = j0 + span_d
+  
     days: list[dict[str, Any]] = []
     for i in range(j0, j1):
         days.append(
             {
                 "date": _fmt_daily_date_dmy_local(d_time[i], tz),
                 "weather": weather_label(d_code[i] if i < len(d_code) else None),
-                "tmax": round_degrees(tmax[i]),
-                "tmin": round_degrees(tmin[i]),
-                "precip_sum": psum[i],
-                "precip_prob_max": pmax[i],
-                "wind_max": wmax[i],
+                "tmax": round_degrees(tmax[i] if i < len(tmax) else None),
+                "tmin": round_degrees(tmin[i] if i < len(tmin) else None),
+                "precip_sum": psum[i] if i < len(psum) else None,
+                "precip_prob_max": pmax[i] if i < len(pmax) else None,
+                "wind_max": round_wind_kmh(wmax[i] if i < len(wmax) else None),
             }
         )
+    
+    print("d_time:", len(d_time), d_time)
 
     # Derived “simple” insights
     trend = "stable"
@@ -270,8 +264,8 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
             "apparent_temperature": round_degrees(current.get("apparent_temperature")),
             "humidity": current.get("relative_humidity_2m"),
             "precipitation": current.get("precipitation"),
-            "wind_speed": current.get("wind_speed_10m"),
-            "wind_gusts": current.get("wind_gusts_10m"),
+            "wind_speed": round_wind_kmh(current.get("wind_speed_10m")),
+            "wind_gusts": round_wind_kmh(current.get("wind_gusts_10m")),
             "cloud_cover": current.get("cloud_cover"),
             "units": {
                 "temperature": units.get("temperature_2m", "°C"),

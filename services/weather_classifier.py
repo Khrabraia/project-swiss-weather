@@ -50,7 +50,7 @@ def round_degrees(value: float | int | None) -> int:
 def round_wind_kmh(value: float | int | None) -> int:
     if value is None:
         return 0
-    return int(round(float(value), 0))
+    return round(float(value), 1)
 
 
 def classify_weather(
