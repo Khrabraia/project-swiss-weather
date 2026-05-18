@@ -138,12 +138,3 @@ def build_weather_bundle(*, day_offset: int = 0, hour: int | None = None) -> dic
         "cities": cities_out,
         "recommendations": recommendations,
     }
-
-
-def all_cities_weather(*, day_offset: int = 0, hour: int | None = None) -> dict[str, Any]:
-    return build_weather_bundle(day_offset=day_offset, hour=hour)
-
-
-def top_walk_recommendations(*, day_offset: int = 0, limit: int = 3) -> list[dict[str, Any]]:
-    bundle = build_weather_bundle(day_offset=day_offset, hour=12)
-    return bundle["recommendations"][:limit]

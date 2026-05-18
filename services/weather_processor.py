@@ -38,16 +38,6 @@ WEATHER_CODE_LABELS: dict[int, str] = {
     99: "Thunderstorm with heavy hail",
 }
 
-
-def _safe_get(d: dict[str, Any], path: list[str], default=None):
-    cur: Any = d
-    for p in path:
-        if not isinstance(cur, dict) or p not in cur:
-            return default
-        cur = cur[p]
-    return cur
-
-
 def _fmt_time_iso8601(s: str) -> str:
     # Open-Meteo returns ISO-ish strings, e.g. 2026-04-28T13:00
     # Keep it stable and display-friendly.
