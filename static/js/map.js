@@ -140,7 +140,7 @@
 
     const title = document.querySelector("#view-recommendations .panel__title");
     if (title) {
-      title.textContent = `Best cities to walk · ${dayLabel}`;
+      title.textContent = `Best places to walk · ${dayLabel}`;
     }
 
     if (!items.length) {
