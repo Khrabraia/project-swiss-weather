@@ -219,8 +219,6 @@ def build_dashboard_view_model(*, city: dict[str, Any], forecast: dict[str, Any]
                 "wind_max": round_wind_kmh(wmax[i] if i < len(wmax) else None),
             }
         )
-    
-    print("d_time:", len(d_time), d_time)
 
     # Derived “simple” insights
     trend = "stable"
