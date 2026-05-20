@@ -1,18 +1,49 @@
-# Swiss Weather Dashboard (Flask + Open‑Meteo MeteoSwiss ICON)
+# Swiss Weather and Walks (Flask + Open-Meteo MeteoSwiss ICON)
 
-Small Flask web app that fetches Swiss weather data from Open‑Meteo’s **MeteoSwiss ICON** models, processes it server-side, and presents it in a simple dashboard with charts. The app also includes an interactive map that visualizes weather conditions across Swiss cities. Each location is color-coded based on how suitable the weather is for a walk, making it easy to quickly compare conditions across regions.
+A small full-stack web application that combines a weather dashboard with smart recommendations for walking in Switzerland.
 
-In addition to raw weather data and charts, the backend computes a walking suitability status for each city using factors such as temperature, precipitation, wind, and cloud cover.
+The app allows users to:
+- view current weather and forecasts
+- explore weather conditions across cities
+- and quickly decide where it is best to go for a walk
 
-The possible statuses are:
+Instead of manually analyzing forecasts, the app processes weather data and provides simple, clear suggestions.
 
-- **go_out** – ideal conditions for a walk  
-- **nice_walk** – generally good weather  
-- **short_walk** – acceptable, but not perfect  
-- **take_umbrella** – rain likely  
-- **stay_home** – better to stay indoors  
+## Features
 
-Data source docs: https://open-meteo.com/en/docs/meteoswiss-api
+- Weather dashboard with current conditions and forecasts
+- 24-hour forecast starting from the current time
+- Multi-day forecast
+- Interactive map with color-coded cities
+- Walking suitability status for each location
+- "Walk Picks" — best cities for walking for each day
+
+## Walking Suitability
+
+The backend evaluates weather conditions using:
+- temperature
+- precipitation
+- wind
+- cloud cover
+
+Based on this, each city gets a status:
+
+- **go out** – ideal conditions for a walk  
+- **nice walk** – generally good weather  
+- **short walk** – acceptable, but not perfect  
+- **take umbrella** – rain likely  
+- **stay home** – better to stay indoors  
+
+## Data Source
+
+Open-Meteo MeteoSwiss ICON API:  
+https://open-meteo.com/en/docs/meteoswiss-api
+
+## Tech Stack
+
+- Backend: Python (Flask)
+- Frontend: JavaScript
+- Data: Open-Meteo API
 
 ## Run
 

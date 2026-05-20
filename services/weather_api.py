@@ -50,13 +50,13 @@ _DAILY_VARS = [
 ]
 
 
-def _iso_times_from_unix(start_s: int, end_s: int, interval_s: int) -> list[str]:
+def _iso_times_from_unix(start_s: int, end_s: int, interval_s: int, timezone: str) -> list[str]:
     idx = pd.date_range(
         start=pd.to_datetime(start_s, unit="s", utc=True),
         end=pd.to_datetime(end_s, unit="s", utc=True),
         freq=pd.Timedelta(seconds=interval_s),
         inclusive="left",
-    )
+    ).tz_convert(timezone)
     return [t.isoformat(timespec="minutes") for t in idx]
 
 
@@ -111,23 +111,14 @@ def _response_to_forecast(response: Any, *, timezone: str) -> dict[str, Any]:
         "wind_direction_10m": "°",
         "wind_gusts_10m": "km/h",
     }
-    current_data: dict[str, Any] = {"time": None}
-    try:
-        current_data["time"] = (
-            pd.to_datetime(current.Time(), unit="s", utc=True)
-            .to_pydatetime()
-            .replace(tzinfo=None)
-            .isoformat(timespec="minutes")
-        )
-    except Exception:
-        current_data["time"] = None
+    current_data: dict[str, Any] = {}
 
     for i, v in enumerate(_CURRENT_VARS):
         var = current.Variables(i)
         current_data[v] = var.Value()
 
     hourly = response.Hourly()
-    hourly_times = _iso_times_from_unix(hourly.Time(), hourly.TimeEnd(), hourly.Interval())
+    hourly_times = _iso_times_from_unix(hourly.Time(), hourly.TimeEnd(), hourly.Interval(), timezone)
     hourly_units: dict[str, Any] = {
         "time": "iso8601",
         "temperature_2m": "°C",
@@ -144,7 +135,7 @@ def _response_to_forecast(response: Any, *, timezone: str) -> dict[str, Any]:
         hourly_data[v] = _as_list(var.ValuesAsNumpy())
 
     daily = response.Daily()
-    daily_times = _iso_times_from_unix(daily.Time(), daily.TimeEnd(), daily.Interval())
+    daily_times = _iso_times_from_unix(daily.Time(), daily.TimeEnd(), daily.Interval(), timezone)
     daily_units: dict[str, Any] = {
         "time": "iso8601",
         "temperature_2m_max": "°C",

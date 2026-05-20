@@ -11,6 +11,7 @@ from services.weather_classifier import (
     round_degrees,
     round_wind_kmh,
     status_display,
+    STATUSES
 )
 from services.weather_processor import find_hourly_index
 
@@ -125,11 +126,15 @@ def build_weather_bundle(*, day_offset: int = 0, hour: int | None = None) -> dic
         noon = point_from_forecast(city=city, forecast=forecast, day_offset=day_offset, hour=12)
         if noon:
             cur = noon["current"]
-            ranked.append((cur["score"], city["name"], _recommendation_from_point(city, cur)))
+            status_from_point = _recommendation_from_point(city, cur)
+            if status_from_point["status"] == STATUSES[0]: 
+                ranked.append((cur["score"], city["name"], status_from_point))
 
     cities_out.sort(key=lambda c: c["name"])
     ranked.sort(key=lambda x: (-x[0], x[1]))
-    recommendations = [item for _score, _name, item in ranked[:3]]
+    recommendations = [item for _score, _name, item in ranked]
+    
+    
 
     return {
         "day_offset": day_offset,
